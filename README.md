@@ -84,12 +84,17 @@ database.db.execute() # as example
 the ini file must have the same name as the database, only it must end with `.ini`. You do not have to specify this when reading in because it derives it
 
 An ini file is structured as follows so that it works
+
+Always only **ONE** space as spacing, otherwise errors will occur. In the `default_value` this does not matter if you use a string.
+
+If you do something wrong, no data will be damaged, there will be an error beforehand.
 ```ini
 [user]
-id = INTEGER 0 0 0 0  None
-name = TEXT 0 0 0 0  'unbekannt'
-money = INTEGER 0 0 0 0  1000
-inventory = TEXT 0 0 0 0  '{}'
+id = INTEGER 0 0 0 0
+name = TEXT 0 0 0 0 'unbekannt'
+money = INTEGER 0 0 0 0 1000
+inventory = TEXT 0 0 0 0 '{}'
+description = TEXT 0 0 0 0
 ```
 
 construction
@@ -98,7 +103,8 @@ construction
 - `id`, `name` - that's the column name - *you can enter what you want here*
 - Types - SQLite databases are of different types, all of which can be used
 - Numbers, Here are 4 numbers, these mean in sequence `not_null`, `primary_key`, `autoincerment` and `unique`. `0` is deactivated and `1` is activated.
-- The last is the default value that the column should have. If you don't want to specify anything, don't write anything. Otherwise, write your desired value as a string with `'your string'` and a number like `598` or `2985.123`.
+- The last is the default value that the column should have.
+  If you don't want to specify anything, don't write anything. Otherwise, write your desired value as a string with `'your string'` and a number like `598` or `2985.123`.
   
 ### SQLite Types
 
