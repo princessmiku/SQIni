@@ -5,7 +5,7 @@ from setuptools import setup
 HERE = pathlib.Path(__file__).parent
 
 README = (HERE / "README.md").read_text()
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 DESCRIPTION = 'connect table settings of a sqlite database with a ini file for better editing '
 
 # Setting up
@@ -19,7 +19,7 @@ setup(
     long_description_content_type="text/markdown",
     url='https://github.com/princessmiku/SQIni',
     install_requires=[],
-    keywords=['python', 'sqlite3', 'sqlite', 'ini', 'sqini'],
+    keywords=['python', 'sqlite3', 'sqlite', 'ini', 'sqini', 'orm', 'database'],
     classifiers=[
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
