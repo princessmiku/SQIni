@@ -86,10 +86,10 @@ the ini file must have the same name as the database, only it must end with `.in
 An ini file is structured as follows so that it works
 ```ini
 [user]
-id = INTEGER 0 0 0 0 0 None
-name = TEXT 0 0 0 0 1 'unbekannt'
-money = INTEGER 0 0 0 0 1 1000
-inventory = TEXT 0 0 0 0 1 '{}'
+id = INTEGER 0 0 0 0  None
+name = TEXT 0 0 0 0  'unbekannt'
+money = INTEGER 0 0 0 0  1000
+inventory = TEXT 0 0 0 0  '{}'
 ```
 
 construction
@@ -97,9 +97,8 @@ construction
 - `[user]` - that's the table name - *you can enter what you want here*
 - `id`, `name` - that's the column name - *you can enter what you want here*
 - Types - SQLite databases are of different types, all of which can be used
-- Numbers, Here are 5 numbers, these mean in sequence `not_null`, `primary_key`, `autoincerment`, `unique` and `default_value`. `0` is deactivated and `1` is activated.
-- The last one is the default value that should be assigned. This is only awarded if you have set it to 1 in advance. A string is written with `'custom text'` and a number without.
-If you don't want to set a `default_value` just write something or `None`.
+- Numbers, Here are 4 numbers, these mean in sequence `not_null`, `primary_key`, `autoincerment` and `unique`. `0` is deactivated and `1` is activated.
+- The last is the default value that the column should have. If you don't want to specify anything, don't write anything. Otherwise, write your desired value as a string with `'your string'` and a number like `598` or `2985.123`.
   
 ### SQLite Types
 

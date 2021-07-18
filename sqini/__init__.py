@@ -8,17 +8,18 @@ colors = {
 
 class Database:
 
-    def __init__(self, iniSync: bool = False, canDelete: bool = False):
+    def __init__(self, iniSync: bool = False, canDelete: bool = False, messages: bool = True):
         """
         :param iniSync: Sync changes with the ini
         :param canDelete: Allow to delete columns/tables in your database automatically
+        :param messages: optional messages as example "tables found that are not in the ini file"
         """
         self.ini = configparser.ConfigParser()
         self.iniSync = iniSync
         self.db: sqlite3.Connection = None
         self.fileName = "sqiniDatabase"
         self.filePath = "./"
-
+        self.messages = messages
         self.canDelete = canDelete
 
     def read(self, path: str = ""):
@@ -52,6 +53,9 @@ class Database:
     def getTableInformations(self) -> dict:
         tables = {}
         raw = self.db.execute("SELECT name FROM sqlite_master WHERE type in ('table', 'view')").fetchall()
+        autoIncrementTables = []
+        for increment in self.db.execute(f"SELECT * FROM sqlite_sequence").fetchall():
+            autoIncrementTables.append(increment[0])
         for t in raw:
             table_name = t[0]
             if "sqlite_sequence" not in table_name:
@@ -61,7 +65,15 @@ class Database:
                     "autoIncrement": []
                 }
                 tablecolumns = self.db.execute(f"PRAGMA table_info({table_name})").fetchall()
+                indexList = self.db.execute(f"PRAGMA index_list({table_name})").fetchall()
+                uniqueList = []
+                for index in indexList:
+                    uniqueList.append(self.db.execute(f"PRAGMA index_info({index[1]})").fetchone()[2])
                 for c in tablecolumns:
+                    autoIncrement = 0
+                    unique = 0
+                    if autoIncrementTables.__contains__(table_name): autoIncrement = 1
+                    if uniqueList.__contains__(c[1]): unique = 1
                     tables[table_name]["columns"][c[0]] = {
                         "cid": c[0],
                         "name": c[1],
@@ -69,8 +81,8 @@ class Database:
                         "notnull": c[3],
                         "dflt_value": c[4],
                         "pk": c[5],
-                        "autoincerment": 0,
-                        "unique": 0
+                        "autoincerment": autoIncrement,
+                        "unique": unique
                     }
         return tables
 
@@ -87,13 +99,18 @@ class Database:
         for table in tables:
             if table not in self.ini.sections():
                 self.ini.add_section(table)
-            columnIniStr = "{} {} {} {} {} {} {}"
+            columnIniStr = "{} {} {} {} {} {}"
             columns = tables[table]["columns"]
             for c in columns:
                 column = columns[c]
                 dflt_value = 1
-                if column["dflt_value"] is None: dflt_value = 0
-                self.ini.set(table, column["name"], columnIniStr.format(column["type"], column["notnull"], column["pk"], 0, 0, dflt_value, column["dflt_value"]))
+                if column["dflt_value"] is None: column["dflt_value"] = ""
+                self.ini.set(table, column["name"],
+                             columnIniStr.format(
+                                 column["type"], column["notnull"], column["pk"],
+                                 column["autoincerment"], column["unique"], column["dflt_value"]
+                             ))
+
         self.save()
 
     def syncToDatabase(self):
@@ -105,6 +122,13 @@ class Database:
         updateTables = {}
         tables = self.getTableInformations()
         selections = self.ini.sections()
+        deleteTables = []
+        for t in tables:
+            if not selections.__contains__(t): deleteTables.append(t)
+        if self.canDelete is not True:
+            if len(deleteTables) > 0:
+                deleteTables.clear()
+                if self.messages: print("tables found that are not in the ini file")
         for x in selections:
             if self.canDelete is False:
                 if x in tables.keys(): updateTables[x] = tables[x]; tables[x]["oldColumns"] = []
@@ -121,8 +145,9 @@ class Database:
                     "autoIncrement": [],
                     "oldColumns": []
                 }
-            for cid in tables[x]["columns"]:
-                updateTables[x]["oldColumns"].append(tables[x]["columns"][cid]["name"])
+            if tables.__contains__(x):
+                for cid in tables[x]["columns"]:
+                    updateTables[x]["oldColumns"].append(tables[x]["columns"][cid]["name"])
             selectData = dict(self.ini.items(x))
             count = 0
             insertedKeys = []
@@ -133,17 +158,18 @@ class Database:
                 if not insertedKeys.__contains__(key):
                     insertedKeys.append(key)
                     if self.canDelete:
-                        insert = selectData[key].split(" ", 6)
-                        if int(insert[5]) == 1:
-                            dflt_value = insert[6]
-                        else:
-                            dflt_value = None
+                        insert: list = selectData[key].split(" ", 6)
+                        if len(insert) < 6:
+                            insert.append(None)
+                        if isinstance(insert[5], str):
+                            if insert[5].isnumeric():
+                                insert[5] = int(insert[5])
                         updateTables[x]["columns"][count] = {
                             "cid": count,
                             "name": key,
                             "type": insert[0],
                             "notnull": int(insert[1]),
-                            "dflt_value": dflt_value,
+                            "dflt_value": insert[5],
                             "pk": int(insert[2]),
                             "autoincerment": int(insert[3]),
                             "unique": int(insert[4])
@@ -155,16 +181,17 @@ class Database:
                         else:
                             number = 0
                         insert = selectData[key].split(" ", 6)
-                        if int(insert[5]) == 1:
-                            dflt_value = insert[6]
-                        else:
-                            dflt_value = None
+                        if len(insert) < 6:
+                            insert.append(None)
+                        if isinstance(insert[5], str):
+                            if insert[5].isnumeric():
+                                insert[5] = int(insert[5])
                         updateTables[x]["columns"][number] = {
                             "cid": number,
                             "name": key,
                             "type": insert[0],
                             "notnull": int(insert[1]),
-                            "dflt_value": dflt_value,
+                            "dflt_value": insert[5],
                             "pk": int(insert[2]),
                             "autoincerment": int(insert[3]),
                             "unique": int(insert[4])
@@ -188,7 +215,7 @@ class Database:
                 column_notnull = ""
                 if column["notnull"] == 1: column_notnull = "NOT NULL"
                 column_dflt_value = ""
-                if column["dflt_value"] is not None: column_dflt_value = "DEFAULT " + column["dflt_value"]
+                if column["dflt_value"] is not None: column_dflt_value = "DEFAULT " + str(column["dflt_value"])
                 if not primaryKey.__contains__(True):
                     if column["autoincerment"] == 1:
                         primaryKey.clear()
@@ -215,7 +242,10 @@ class Database:
             # execute finish sql script
             self.db.executescript(sqlScript)
             self.db.commit()
-
+        if self.canDelete:
+            for table in deleteTables:
+                self.db.execute(f"DROP TABLE {table}")
+                self.db.commit()
     def deletecolumn(self, name: str):
         pass
 
