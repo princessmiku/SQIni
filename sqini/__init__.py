@@ -42,7 +42,7 @@ class Database:
                 print(self.__colors["red"], "path not specified, base database file already exist, please enter a path -> path=\"path_to_your_database\"")
         else:
             self.fileName = path.split("/")[-1].split(".", -1)[0]
-            self.filePath = path.split("/", -1)[0] + "/"
+            self.filePath = path.rsplit("/", 1)[0] + "/"
             try:
                 if not self.fileName + ".db" in os.listdir(self.filePath):
                     self.db = sqlite3.connect(self.filePath + self.fileName + ".db")
