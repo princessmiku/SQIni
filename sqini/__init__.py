@@ -200,7 +200,6 @@ class Database:
                         else:
                             number = 0
                         insert = selectData[key].split(" ", 5)
-                        print(insert)
                         if len(insert) < 6:
                             insert.append(None)
                         if isinstance(insert[5], str):
