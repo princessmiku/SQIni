@@ -5,7 +5,7 @@ from setuptools import setup
 HERE = pathlib.Path(__file__).parent
 
 README = (HERE / "README.md").read_text()
-VERSION = '0.0.3'
+VERSION = '0.0.5'
 DESCRIPTION = 'connect table settings of a sqlite database with a ini file for better editing '
 
 # Setting up

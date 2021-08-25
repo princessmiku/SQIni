@@ -1,12 +1,16 @@
+"""
+
+
+"""
 import configparser
 import os
 import sqlite3
 
-colors = {
-    "red": "\033[91m"
-}
 
 class Database:
+    __colors = {
+        "red": "\033[91m"
+    }
 
     def __init__(self, iniSync: bool = False, canDelete: bool = False, messages: bool = True):
         """
@@ -25,6 +29,7 @@ class Database:
     def read(self, path: str = ""):
         """
         Set your paths for the database, the Ini file must have the same name as the database
+
         :param path: enter here your path to your SQLite Database
         :return:
         """
@@ -34,7 +39,7 @@ class Database:
                 open(self.filePath + self.fileName + ".ini", mode="w").close()
                 self.ini.read(self.filePath + self.fileName + ".ini")
             else:
-                print(colors["red"], "path not specified, base database file already exist, please enter a path -> path=\"path_to_your_database\"")
+                print(self.__colors["red"], "path not specified, base database file already exist, please enter a path -> path=\"path_to_your_database\"")
         else:
             self.fileName = path.split("/")[-1].split(".", -1)[0]
             self.filePath = path.split("/", -1)[0] + "/"
@@ -48,14 +53,15 @@ class Database:
                     self.db = sqlite3.connect(self.filePath + self.fileName + ".db")
                     self.ini.read(self.filePath + self.fileName + ".ini")
             except NotADirectoryError:
-                print(colors["red"], f"invalid directory path, path not found \"{self.filePath}\". If the database in the same folder use \"./yourFile\"")
+                print(self.__colors["red"], f"invalid directory path, path not found \"{self.filePath}\". If the database in the same folder use \"./yourFile\"")
 
     def getTableInformations(self) -> dict:
         tables = {}
         raw = self.db.execute("SELECT name FROM sqlite_master WHERE type in ('table', 'view')").fetchall()
         autoIncrementTables = []
-        for increment in self.db.execute(f"SELECT * FROM sqlite_sequence").fetchall():
-            autoIncrementTables.append(increment[0])
+        if len(self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'").fetchall()):
+            for increment in self.db.executescript(f"SELECT * FROM sqlite_sequence").fetchall():
+                autoIncrementTables.append(increment[0])
         for t in raw:
             table_name = t[0]
             if "sqlite_sequence" not in table_name:
@@ -86,6 +92,20 @@ class Database:
                     }
         return tables
 
+    def getTableInformation(self, table: str) -> dict:
+        """
+        Get information of a spefic table
+
+        :param table:
+        :return:
+        """
+
+        tables = self.getTableInformations()
+        if tables.__contains__(table):
+            return tables[table]
+        else:
+            raise ValueError(f'{table} not found')
+
     def syncToIni(self):
         """
         Generate the ini File with the Database Configs.
@@ -93,8 +113,7 @@ class Database:
         activate it with -> iniSync = True
         """
         if not self.iniSync:
-            print(colors["red"], "ini sync is disable, safety first")
-            return
+            raise RuntimeError("ini sync function is disabled")
         tables = self.getTableInformations()
         for table in tables:
             if table not in self.ini.sections():
@@ -246,6 +265,7 @@ class Database:
             for table in deleteTables:
                 self.db.execute(f"DROP TABLE {table}")
                 self.db.commit()
+
     def deletecolumn(self, name: str):
         pass
 
@@ -253,10 +273,16 @@ class Database:
         with open(self.filePath + self.fileName + ".ini", mode="w") as iniFile:
             self.ini.write(iniFile)
 
+    def tableUpdate(self, tabledict: dict, oldTableDict: dict):
+        """
+        :param tabledict:
+        :param oldTableDict:
+        :return:
+        """
+
     def rename(self, table: str, current_column: str, new_name: str):
         """
         Rename a column in your sqlite database
-
         :param table: table name
         :param current_column: the current name of the column
         :param new_name: the new name of the column
@@ -270,8 +296,45 @@ class Database:
         """
         pass
 
+    def add_column(self, tableName: str, columnName: str, columnType: str, notnull: bool = False, pk: bool = False, autoIncrement: bool = False, unique: bool = False, dflt_value: [int, str] = None):
+        """
+        Add a Column to a table with all possible settings.
+
+        :param tableName: table name
+        :param columnName: name of the column
+        :param columnType: type of column
+        :param notnull: if notnull
+        :param pk: primary key
+        :param autoIncrement: auto increment, only one per table
+        :param unique: unique value
+        :param dflt_value: default value
+        :return:
+        """
+        tableInfo = self.getTableInformation(tableName)
+        if len(tableInfo) == 0:
+            if self.messages: return
+
+        for x in tableInfo["columns"]:
+            if tableInfo["columns"][x]["name"] == columnName:
+                if self.messages: raise ValueError(f'{columnName} already used in {tableName}')
+        new_cid = len(tableInfo["columns"])
+        tableInfo["columns"][new_cid] = {
+            "cid": new_cid,
+            "name": columnName,
+            "type": columnType,
+            "notnull": notnull,
+            "dflt_value": dflt_value,
+            "pk": pk,
+            "autoincerment": autoIncrement,
+            "unique": unique
+        }
+        sqlStr = f"ALTER TABLE {tableName} ADD COLUMN "
+        insert = ""
     def new_row(self, table: str, row: str):
         """
         :param table: table name
         :param row: Name of the row
         """
+        pass
+
+
