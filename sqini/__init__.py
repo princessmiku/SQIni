@@ -177,7 +177,7 @@ class Database:
                 if not insertedKeys.__contains__(key):
                     insertedKeys.append(key)
                     if self.canDelete:
-                        insert: list = selectData[key].split(" ", 6)
+                        insert: list = selectData[key].split(" ", 5)
                         if len(insert) < 6:
                             insert.append(None)
                         if isinstance(insert[5], str):
@@ -199,7 +199,8 @@ class Database:
                             number = list(updateTables[x]["columns"].keys())[-1] + 1
                         else:
                             number = 0
-                        insert = selectData[key].split(" ", 6)
+                        insert = selectData[key].split(" ", 5)
+                        print(insert)
                         if len(insert) < 6:
                             insert.append(None)
                         if isinstance(insert[5], str):
